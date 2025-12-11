@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'balance',
     ];
 
     /**
@@ -44,5 +45,41 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function assets()
+    {
+        return $this->hasMany(Asset::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get all trades where user owns either the buy or sell order
+     * Note: This is not a standard Eloquent relationship since trades
+     * are associated via buy_order_id and sell_order_id
+     */
+    public function getTradesCountAttribute()
+    {
+        return Trade::whereHas('buyOrder', function($query) {
+            $query->where('user_id', $this->id);
+        })->orWhereHas('sellOrder', function($query) {
+            $query->where('user_id', $this->id);
+        })->count();
+    }
+
+    /**
+     * Get trades query where user owns either the buy or sell order
+     */
+    public function trades()
+    {
+        return Trade::whereHas('buyOrder', function($query) {
+            $query->where('user_id', $this->id);
+        })->orWhereHas('sellOrder', function($query) {
+            $query->where('user_id', $this->id);
+        });
     }
 }
