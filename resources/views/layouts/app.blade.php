@@ -13,6 +13,13 @@
 
     <!-- Styles and Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- User ID for Pusher notifications -->
+    @auth
+    <script>
+        window.userId = {{ auth()->id() }};
+    </script>
+    @endauth
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
     <div class="flex h-screen overflow-hidden">

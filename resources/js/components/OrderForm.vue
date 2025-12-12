@@ -69,7 +69,7 @@
       <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
         <div class="flex justify-between text-sm">
           <span class="text-gray-600 dark:text-gray-400">Total:</span>
-          <span class="font-semibold text-gray-900 dark:text-white">{{ formatNumber(total, 8) }} {{ currency }}</span>
+          <span class="font-semibold text-gray-900 dark:text-white">{{ formatNumber(total, 3) }} {{ currency }}</span>
         </div>
       </div>
       
@@ -77,7 +77,7 @@
       <div v-if="userBalance !== null" class="mb-4 text-sm text-gray-600 dark:text-gray-400">
         <div class="flex justify-between">
           <span>Available:</span>
-          <span class="font-medium">{{ formatNumber(userBalance, 8) }} {{ side === 'buy' ? currency : baseSymbol }}</span>
+          <span class="font-medium">{{ formatNumber(userBalance, 3) }} {{ side === 'buy' ? currency : baseSymbol }}</span>
         </div>
       </div>
       

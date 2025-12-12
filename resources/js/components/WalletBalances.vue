@@ -85,17 +85,17 @@
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Bitcoin</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ formatNumber(balances.BTC.amount, 8) }}
+                {{ formatNumber(balances.BTC.amount, 3) }}
               </p>
             </div>
           </div>
           <div class="text-right">
             <p class="text-xs text-gray-500 dark:text-gray-400">Available</p>
             <p class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-              {{ formatNumber(balances.BTC.available, 8) }}
+              {{ formatNumber(balances.BTC.available, 3) }}
             </p>
             <p v-if="balances.BTC.locked_amount > 0" class="text-xs text-orange-600 dark:text-orange-400 mt-1">
-              Locked: {{ formatNumber(balances.BTC.locked_amount, 8) }}
+              Locked: {{ formatNumber(balances.BTC.locked_amount, 3) }}
             </p>
           </div>
         </div>
@@ -114,17 +114,17 @@
             <div>
               <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Ethereum</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ formatNumber(balances.ETH.amount, 8) }}
+                {{ formatNumber(balances.ETH.amount, 3) }}
               </p>
             </div>
           </div>
           <div class="text-right">
             <p class="text-xs text-gray-500 dark:text-gray-400">Available</p>
             <p class="text-lg font-semibold text-gray-700 dark:text-gray-300">
-              {{ formatNumber(balances.ETH.available, 8) }}
+              {{ formatNumber(balances.ETH.available, 3) }}
             </p>
             <p v-if="balances.ETH.locked_amount > 0" class="text-xs text-purple-600 dark:text-purple-400 mt-1">
-              Locked: {{ formatNumber(balances.ETH.locked_amount, 8) }}
+              Locked: {{ formatNumber(balances.ETH.locked_amount, 3) }}
             </p>
           </div>
         </div>

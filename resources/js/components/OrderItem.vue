@@ -22,19 +22,22 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
           <div>
             <span class="text-gray-500 dark:text-gray-400">Price:</span>
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(order.price, 8) }}</span>
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">${{ formatNumber(order.price, 3) }}</span>
           </div>
           <div>
             <span class="text-gray-500 dark:text-gray-400">Amount:</span>
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(order.amount, 8) }}</span>
-          </div>
-          <div v-if="order.status === 1">
-            <span class="text-gray-500 dark:text-gray-400">Remaining:</span>
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(order.remaining_amount, 8) }}</span>
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(order.amount, 3) }}</span>
           </div>
           <div>
-            <span class="text-gray-500 dark:text-gray-400">Total:</span>
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(parseFloat(order.price) * parseFloat(order.amount), 8) }}</span>
+            <span class="text-gray-500 dark:text-gray-400">{{ remainingLabel }}:</span>
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ formatNumber(remainingOrFilled, 3) }}</span>
+            <span v-if="order.status === 1 && filledPercentage > 0" class="text-xs text-gray-500 dark:text-gray-400">
+              ({{ (100 - filledPercentage).toFixed(0) }}% unfilled)
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-500 dark:text-gray-400">Total Price:</span>
+            <span class="ml-1 font-medium text-gray-900 dark:text-white">${{ formatNumber(totalPrice, 3) }}</span>
           </div>
         </div>
         
@@ -132,8 +135,33 @@ export default {
         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     },
     filledPercentage() {
-      const filled = parseFloat(this.order.amount) - parseFloat(this.order.remaining_amount);
+      const filled = parseFloat(this.order.amount) - parseFloat(this.order.remaining_amount || 0);
       return (filled / parseFloat(this.order.amount)) * 100;
+    },
+    remainingLabel() {
+      if (this.order.status === 1) {
+        // Open order - show what's left to fill
+        return 'Unfilled';
+      } else if (this.order.status === 2) {
+        // Filled order
+        return 'Filled';
+      } else {
+        // Cancelled order
+        return 'Cancelled at';
+      }
+    },
+    remainingOrFilled() {
+      // For open orders, show remaining/unfilled amount
+      // For filled/cancelled orders, show filled amount
+      if (this.order.status === 1) {
+        return parseFloat(this.order.remaining_amount || this.order.amount);
+      } else {
+        // Filled amount = original amount - remaining amount
+        return parseFloat(this.order.amount) - parseFloat(this.order.remaining_amount || 0);
+      }
+    },
+    totalPrice() {
+      return parseFloat(this.order.price) * parseFloat(this.order.amount);
     }
   },
   methods: {

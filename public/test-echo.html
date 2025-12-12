@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laravel Echo Test</title>
+    <meta name="csrf-token" content="test-token">
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        #messages { margin-top: 20px; }
+        .message { padding: 10px; margin: 5px 0; background: #f8f9fa; border-left: 3px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Laravel Echo & Pusher Connection Test</h1>
+    
+    <div class="status info" id="status">Initializing...</div>
+    
+    <h2>Instructions:</h2>
+    <ol>
+        <li>Replace USER_ID below with your actual user ID</li>
+        <li>Make sure you're logged in on the main site</li>
+        <li>Place a matching order to test notifications</li>
+    </ol>
+    
+    <div>
+        <label>Test User ID: <input type="number" id="userId" value="1" /></label>
+        <button onclick="setupListener()">Start Listening</button>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <script>
+        // Enable pusher logging
+        Pusher.logToConsole = true;
+        
+        let echo = null;
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            document.getElementById('messages').prepend(div);
+            console.log(message);
+        }
+        
+        function setupListener() {
+            const userId = document.getElementById('userId').value;
+            
+            if (!userId) {
+                alert('Please enter a user ID');
+                return;
+            }
+            
+            log('Setting up Echo with user ID: ' + userId);
+            
+            // Initialize Echo
+            echo = new Echo({
+                broadcaster: 'pusher',
+                key: 'd5dc388cf3a0bbda1027',
+                cluster: 'mt1',
+                forceTLS: true,
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                }
+            });
+            
+            document.getElementById('status').innerHTML = '✓ Echo initialized, connecting to Pusher...';
+            document.getElementById('status').className = 'status success';
+            
+            // Listen to private channel
+            try {
+                echo.private(`user.${userId}`)
+                    .listen('.OrderMatched', (event) => {
+                        log(`🎉 OrderMatched event received!`, 'success');
+                        log(`Trade ID: ${event.trade_id}`);
+                        log(`Symbol: ${event.symbol}`);
+                        log(`Price: ${event.price}`);
+                        log(`Amount: ${event.amount}`);
+                        log(`Side: ${event.side}`);
+                        
+                        // Show notification
+                        showNotification(event);
+                    })
+                    .error((error) => {
+                        log(`❌ Subscription error: ${JSON.stringify(error)}`, 'error');
+                        document.getElementById('status').innerHTML = '✗ Subscription failed: ' + JSON.stringify(error);
+                        document.getElementById('status').className = 'status error';
+                    });
+                
+                log(`📡 Listening on channel: private-user.${userId}`);
+                
+            } catch (error) {
+                log(`❌ Error setting up listener: ${error.message}`, 'error');
+            }
+        }
+        
+        function showNotification(event) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${event.side === 'buy' ? '#28a745' : '#dc3545'};
+                color: white;
+                padding: 20px;
+                border-radius: 5px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                z-index: 9999;
+            `;
+            notification.innerHTML = `
+                <h3>Order Matched!</h3>
+                <p>You ${event.side === 'buy' ? 'bought' : 'sold'} ${event.amount} ${event.symbol.split('-')[0]} at $${event.price}</p>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 5000);
+        }
+        
+        // Auto-setup if on main site
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check if we're logged in
+            if (window.userId) {
+                document.getElementById('userId').value = window.userId;
+                setupListener();
+            }
+        });
+    </script>
+</body>
+</html>

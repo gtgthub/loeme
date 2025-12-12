@@ -120,7 +120,10 @@
               <span v-if="sortField === 'amount'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-              Filled
+              Unfilled
+            </th>
+            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              Total Price
             </th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" @click="sortBy('status')">
               Status
@@ -157,16 +160,28 @@
               </span>
             </td>
             <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-              ${{ formatNumber(order.price, 2) }}
+              ${{ formatNumber(order.price, 3) }}
             </td>
             <td class="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-              {{ formatNumber(order.amount, 8) }}
+              {{ formatNumber(order.amount, 3) }}
             </td>
             <td class="px-4 py-3 text-sm text-right text-gray-700 dark:text-gray-300">
-              {{ formatNumber(order.filled_amount, 8) }}
-              <span v-if="order.amount > 0" class="text-xs text-gray-500 dark:text-gray-400">
-                ({{ ((order.filled_amount / order.amount) * 100).toFixed(0) }}%)
+              <span class="font-medium">{{ formatNumber(order.remaining_amount, 3) }}</span>
+              <span v-if="order.status === 1 && order.remaining_amount === order.amount" class="block text-xs text-blue-500 dark:text-blue-400 mt-1">
+                Waiting to match
               </span>
+              <span v-else-if="order.status === 1 && order.remaining_amount < order.amount" class="block text-xs text-yellow-500 dark:text-yellow-400 mt-1">
+                {{ ((order.remaining_amount / order.amount) * 100).toFixed(0) }}% unfilled
+              </span>
+              <span v-else-if="order.status === 2" class="block text-xs text-green-500 dark:text-green-400 mt-1">
+                Fully filled
+              </span>
+              <span v-else-if="order.status === 3" class="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Not filled
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+              ${{ formatNumber(order.price * order.amount, 3) }}
             </td>
             <td class="px-4 py-3 text-sm">
               <span 

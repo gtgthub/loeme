@@ -12,11 +12,13 @@ class Trade extends Model
         'symbol',
         'price',
         'amount',
+        'commission',
     ];
 
     protected $casts = [
         'price' => 'decimal:18',
         'amount' => 'decimal:18',
+        'commission' => 'decimal:18',
     ];
 
     public function buyOrder()

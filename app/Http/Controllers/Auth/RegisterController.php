@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Asset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +37,22 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
             'balance' => 10000.00, // Give new users some starting balance
         ]);
+
+        // Create initial assets for the new user
+        $initialAssets = [
+            ['symbol' => 'ETH', 'amount' => 100.000],
+            ['symbol' => 'BTC', 'amount' => 100.000],
+            ['symbol' => 'USDT', 'amount' => 100.000],
+        ];
+
+        foreach ($initialAssets as $assetData) {
+            Asset::create([
+                'user_id' => $user->id,
+                'symbol' => $assetData['symbol'],
+                'amount' => $assetData['amount'],
+                'locked_amount' => 0,
+            ]);
+        }
 
         Auth::login($user);
 

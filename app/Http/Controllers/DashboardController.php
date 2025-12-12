@@ -23,9 +23,9 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
         
-        // Calculate stats
+        // Calculate stats with rounding to 3 decimal places
         $stats = [
-            'total_balance' => $user->balance,
+            'total_balance' => round($user->balance, 3),
             'active_orders' => $user->orders()
                 ->where('status', Order::STATUS_OPEN)
                 ->count(),

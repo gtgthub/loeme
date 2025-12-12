@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pusher Test</title>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+</head>
+<body>
+    <h1>Pusher Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script>
+        // Enable pusher logging
+        Pusher.logToConsole = true;
+
+        var pusher = new Pusher('d5dc388cf3a0bbda1027', {
+            cluster: 'mt1',
+            forceTLS: true,
+            authEndpoint: '/broadcasting/auth',
+            auth: {
+                headers: {
+                    'X-CSRF-TOKEN': 'test'
+                }
+            }
+        });
+
+        pusher.connection.bind('connected', function() {
+            document.getElementById('status').innerHTML = '✓ Connected to Pusher';
+            document.getElementById('status').style.color = 'green';
+        });
+
+        pusher.connection.bind('error', function(err) {
+            document.getElementById('status').innerHTML = '✗ Error: ' + err.error.data.message;
+            document.getElementById('status').style.color = 'red';
+        });
+
+        // Try to subscribe to a public channel for testing
+        var channel = pusher.subscribe('test-channel');
+        channel.bind('test-event', function(data) {
+            var msgDiv = document.getElementById('messages');
+            msgDiv.innerHTML += '<p>Received: ' + JSON.stringify(data) + '</p>';
+        });
+    </script>
+</body>
+</html>

@@ -12,6 +12,13 @@
       <!-- Buy Orders (Bids) -->
       <div class="p-4">
         <div class="text-sm font-semibold text-green-600 dark:text-green-400 mb-3">Buy Orders</div>
+        
+        <!-- Column Headers -->
+        <div class="flex justify-between items-center px-2 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Price (USD)</span>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Qty ({{ baseSymbol }})</span>
+        </div>
+        
         <div class="space-y-1">
           <div v-if="buyOrders.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
             No buy orders
@@ -24,9 +31,9 @@
           >
             <div class="flex-1 relative">
               <div class="absolute inset-0 bg-green-100 dark:bg-green-900/30 rounded" :style="{ width: getDepthWidth(order, buyOrders) }"></div>
-              <span class="relative text-sm font-medium text-green-600 dark:text-green-400">{{ formatNumber(order.price, 8) }}</span>
+              <span class="relative text-sm font-medium text-green-600 dark:text-green-400">${{ formatNumber(order.price, 3) }}</span>
             </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300 ml-4">{{ formatNumber(order.remaining_amount, 8) }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-300 ml-4">{{ formatNumber(order.remaining_amount, 3) }}</span>
           </div>
         </div>
       </div>
@@ -34,6 +41,13 @@
       <!-- Sell Orders (Asks) -->
       <div class="p-4">
         <div class="text-sm font-semibold text-red-600 dark:text-red-400 mb-3">Sell Orders</div>
+        
+        <!-- Column Headers -->
+        <div class="flex justify-between items-center px-2 pb-2 mb-2 border-b border-gray-200 dark:border-gray-700">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Price (USD)</span>
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Qty ({{ baseSymbol }})</span>
+        </div>
+        
         <div class="space-y-1">
           <div v-if="sellOrders.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
             No sell orders
@@ -46,9 +60,9 @@
           >
             <div class="flex-1 relative">
               <div class="absolute inset-0 bg-red-100 dark:bg-red-900/30 rounded" :style="{ width: getDepthWidth(order, sellOrders) }"></div>
-              <span class="relative text-sm font-medium text-red-600 dark:text-red-400">{{ formatNumber(order.price, 8) }}</span>
+              <span class="relative text-sm font-medium text-red-600 dark:text-red-400">${{ formatNumber(order.price, 3) }}</span>
             </div>
-            <span class="text-sm text-gray-700 dark:text-gray-300 ml-4">{{ formatNumber(order.remaining_amount, 8) }}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-300 ml-4">{{ formatNumber(order.remaining_amount, 3) }}</span>
           </div>
         </div>
       </div>
@@ -58,7 +72,7 @@
     <div v-if="!loading && spread !== null" class="p-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
       <div class="flex justify-between items-center text-sm">
         <span class="text-gray-600 dark:text-gray-400">Spread:</span>
-        <span class="font-semibold text-gray-900 dark:text-white">{{ formatNumber(spread, 8) }}</span>
+        <span class="font-semibold text-gray-900 dark:text-white">${{ formatNumber(spread, 3) }} USD</span>
       </div>
     </div>
   </div>
@@ -98,6 +112,11 @@ export default {
     };
   },
   computed: {
+    baseSymbol() {
+      // Extract base symbol from symbol (e.g., "BTC" from "BTC-USD")
+      const parts = this.symbol.split('-');
+      return parts[0] || 'ASSET';
+    },
     buyOrders() {
       return this.orders
         .filter(order => order.side === 'buy' && order.status === 1)

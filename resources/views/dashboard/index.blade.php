@@ -92,7 +92,7 @@
                                         </span>
                                     </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        {{ number_format($order->amount, 8) }} @ {{ number_format($order->price, 8) }}
+                                        {{ number_format($order->amount, 3) }} @ {{ number_format($order->price, 3) }}
                                     </div>
                                 </div>
                                 <div class="text-right">

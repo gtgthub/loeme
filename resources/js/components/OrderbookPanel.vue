@@ -50,8 +50,8 @@
       <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
         <div class="grid grid-cols-3 gap-4 text-xs font-semibold text-gray-600 dark:text-gray-400">
           <div class="text-left">Price (USD)</div>
-          <div class="text-right">Amount</div>
-          <div class="text-right">Total</div>
+          <div class="text-right">Qty ({{ baseSymbol }})</div>
+          <div class="text-right">Cumulative</div>
         </div>
       </div>
       
@@ -72,13 +72,13 @@
           ></div>
           <div class="grid grid-cols-3 gap-4 text-sm relative z-10">
             <div class="text-left font-medium text-red-600 dark:text-red-400">
-              {{ formatNumber(ask.price, 2) }}
+              ${{ formatNumber(ask.price, 3) }}
             </div>
             <div class="text-right text-gray-700 dark:text-gray-300">
-              {{ formatNumber(ask.amount, 8) }}
+              {{ formatNumber(ask.amount, 3) }}
             </div>
             <div class="text-right text-gray-600 dark:text-gray-400 text-xs">
-              {{ formatNumber(ask.total, 8) }}
+              {{ formatNumber(ask.total, 3) }}
             </div>
           </div>
         </div>
@@ -89,7 +89,7 @@
         <div class="flex justify-between items-center">
           <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Spread:</span>
           <span class="text-sm font-bold text-gray-900 dark:text-white">
-            {{ spread !== null ? formatNumber(spread, 2) : '--' }}
+            {{ spread !== null ? '$' + formatNumber(spread, 3) + ' USD' : '--' }}
           </span>
         </div>
       </div>
@@ -111,13 +111,13 @@
           ></div>
           <div class="grid grid-cols-3 gap-4 text-sm relative z-10">
             <div class="text-left font-medium text-green-600 dark:text-green-400">
-              {{ formatNumber(bid.price, 2) }}
+              ${{ formatNumber(bid.price, 3) }}
             </div>
             <div class="text-right text-gray-700 dark:text-gray-300">
-              {{ formatNumber(bid.amount, 8) }}
+              {{ formatNumber(bid.amount, 3) }}
             </div>
             <div class="text-right text-gray-600 dark:text-gray-400 text-xs">
-              {{ formatNumber(bid.total, 8) }}
+              {{ formatNumber(bid.total, 3) }}
             </div>
           </div>
         </div>
@@ -159,6 +159,13 @@ export default {
     };
   },
   computed: {
+    baseSymbol() {
+      // Extract base symbol from selected symbol (e.g., "BTC" from "BTCUSD")
+      // Supports both BTCUSD and BTC-USD formats
+      const symbol = this.selectedSymbol || this.symbol;
+      const cleaned = symbol.replace('-', '');
+      return cleaned.replace(/USD$/, '');
+    },
     bids() {
       if (!this.orderbook || !this.orderbook.bids) return [];
       return this.orderbook.bids.slice(0, this.maxRows);

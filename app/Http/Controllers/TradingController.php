@@ -28,8 +28,21 @@ class TradingController extends Controller
             ->take(50)
             ->get();
         
-        // Get user's assets
-        $userAssets = $user->assets;
+        // Get user's assets and include USD balance
+        $userAssets = $user->assets->toArray();
+        
+        // Calculate locked USD from open buy orders
+        $lockedUsd = $user->orders()
+            ->where('status', Order::STATUS_OPEN)
+            ->where('side', 'buy')
+            ->sum('locked_usd');
+        
+        // Add USD as a virtual asset
+        array_unshift($userAssets, [
+            'symbol' => 'USD',
+            'amount' => $user->balance,
+            'locked_amount' => $lockedUsd,
+        ]);
         
         return view('trading.index', compact('symbol', 'openOrders', 'recentTrades', 'userAssets'));
     }
@@ -57,41 +70,70 @@ class TradingController extends Controller
         $user = auth()->user();
         $data = $validator->validated();
 
-        // Check if user has sufficient balance
-        $total = $data['price'] * $data['amount'];
+        // Round values to 3 decimal places
+        $price = round($data['price'], 3);
+        $amount = round($data['amount'], 3);
+        $total = round($price * $amount, 3);
         
         if ($data['side'] === 'buy') {
+            // Check if user has sufficient balance
             if ($user->balance < $total) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Insufficient balance'
+                    'message' => "Insufficient USD balance. To BUY, you need \${$total} USD but you only have \${$user->balance} USD."
                 ], 400);
             }
+            
+            // Deduct balance from user
+            $user->balance = round($user->balance - $total, 3);
+            $user->save();
+            
+            // Create the order with locked USD
+            $order = $user->orders()->create([
+                'symbol' => $data['symbol'],
+                'side' => $data['side'],
+                'price' => $price,
+                'amount' => $amount,
+                'remaining_amount' => $amount,
+                'status' => Order::STATUS_OPEN,
+                'locked_usd' => $total,
+            ]);
         } else {
             // For sell orders, check if user has the asset
-            $asset = $user->assets()->where('symbol', explode('-', $data['symbol'])[0])->first();
-            if (!$asset || ($asset->amount - $asset->locked_amount) < $data['amount']) {
+            $symbolParts = explode('-', $data['symbol']);
+            $baseSymbol = $symbolParts[0];
+            $asset = $user->assets()->where('symbol', $baseSymbol)->first();
+            if (!$asset || ($asset->amount - ($asset->locked_amount ?? 0)) < $amount) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Insufficient assets'
+                    'message' => "Insufficient {$baseSymbol} balance. To SELL {$baseSymbol}, you need to own {$baseSymbol} assets."
                 ], 400);
             }
+            
+            // Lock the asset
+            $asset->locked_amount = round($asset->locked_amount + $amount, 3);
+            $asset->save();
+            
+            // Create the order with locked USD value
+            $order = $user->orders()->create([
+                'symbol' => $data['symbol'],
+                'side' => $data['side'],
+                'price' => $price,
+                'amount' => $amount,
+                'remaining_amount' => $amount,
+                'status' => Order::STATUS_OPEN,
+                'locked_usd' => $total,
+            ]);
         }
 
-        // Create the order
-        $order = $user->orders()->create([
-            'symbol' => $data['symbol'],
-            'side' => $data['side'],
-            'price' => $data['price'],
-            'amount' => $data['amount'],
-            'remaining_amount' => $data['amount'],
-            'status' => Order::STATUS_OPEN,
-        ]);
+        // Attempt to match the order immediately
+        $matched = $order->match();
 
         return response()->json([
             'success' => true,
-            'message' => 'Order placed successfully',
-            'order' => $order
+            'message' => $matched ? 'Order matched and filled successfully' : 'Order placed successfully',
+            'order' => $order->fresh(), // Refresh to get updated status
+            'matched' => $matched
         ], 201);
     }
 }

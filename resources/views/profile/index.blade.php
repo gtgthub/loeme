@@ -33,12 +33,60 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Balance</label>
-                    <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($user->balance, 2) }} USD</div>
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($user->balance, 3) }} USD</div>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Member Since</label>
                     <div class="text-gray-900 dark:text-white">{{ $user->created_at->format('F j, Y') }}</div>
+                </div>
+            </div>
+
+            <!-- Asset Balances -->
+            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Asset Balances</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @php
+                        $btc = $user->assets->firstWhere('symbol', 'BTC');
+                        $eth = $user->assets->firstWhere('symbol', 'ETH');
+                        $usdt = $user->assets->firstWhere('symbol', 'USDT');
+                    @endphp
+                    
+                    <div class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">BTC Balance</div>
+                                <div class="text-xl font-bold text-orange-600 dark:text-orange-400">
+                                    {{ number_format($btc->amount ?? 0, 8) }}
+                                </div>
+                            </div>
+                            <div class="text-2xl">₿</div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">ETH Balance</div>
+                                <div class="text-xl font-bold text-purple-600 dark:text-purple-400">
+                                    {{ number_format($eth->amount ?? 0, 8) }}
+                                </div>
+                            </div>
+                            <div class="text-2xl">Ξ</div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">USDT Balance</div>
+                                <div class="text-xl font-bold text-green-600 dark:text-green-400">
+                                    {{ number_format($usdt->amount ?? 0, 3) }}
+                                </div>
+                            </div>
+                            <div class="text-2xl">₮</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -36,13 +36,13 @@
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium"
                 :class="getTradeSideClass(trade)">
-              {{ formatNumber(trade.price, 8) }}
+              {{ formatNumber(trade.price, 3) }}
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right">
-              {{ formatNumber(trade.amount, 8) }}
+              {{ formatNumber(trade.amount, 3) }}
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-right font-medium">
-              {{ formatNumber(parseFloat(trade.price) * parseFloat(trade.amount), 8) }}
+              {{ formatNumber(parseFloat(trade.price) * parseFloat(trade.amount), 3) }}
             </td>
           </tr>
         </tbody>

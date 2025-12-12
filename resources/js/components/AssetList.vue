@@ -45,17 +45,17 @@
                 {{ asset.symbol }}
               </div>
               <div class="text-sm text-gray-500 dark:text-gray-400">
-                Available: {{ formatNumber(availableAmount(asset), 8) }}
+                Available: {{ formatNumber(availableAmount(asset), 3) }}
               </div>
             </div>
           </div>
           
           <div class="text-right">
             <div class="font-semibold text-gray-900 dark:text-white">
-              {{ formatNumber(asset.amount, 8) }}
+              {{ formatNumber(asset.amount, 3) }}
             </div>
             <div v-if="parseFloat(asset.locked_amount) > 0" class="text-sm text-yellow-600 dark:text-yellow-400">
-              Locked: {{ formatNumber(asset.locked_amount, 8) }}
+              Locked: {{ formatNumber(asset.locked_amount, 3) }}
             </div>
           </div>
         </div>

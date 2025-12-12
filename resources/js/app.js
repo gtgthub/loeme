@@ -1,5 +1,6 @@
 import './bootstrap';
 import Vue from 'vue'; // Will use full build via vite.config.js alias
+import { initializeOrderNotifications } from './orderNotifications';
 
 // Import Vue components
 import BalanceCard from './components/BalanceCard.vue';
@@ -71,4 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     console.log(`✓ Initialized ${appElements.length} Vue instance(s)`);
+    
+    // Initialize order match notifications if user is authenticated
+    if (window.userId) {
+        initializeOrderNotifications();
+    }
 });

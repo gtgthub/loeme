@@ -100,7 +100,7 @@
           <div class="flex justify-between text-sm">
             <span class="text-gray-600 dark:text-gray-400">Available Balance:</span>
             <span class="font-medium" :class="hasInsufficientBalance ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'">
-              {{ formatNumber(availableBalance, 8) }} {{ form.side === 'buy' ? 'USD' : baseSymbol }}
+              {{ formatNumber(availableBalance, 3) }} {{ form.side === 'buy' ? 'USD' : baseSymbol }}
             </span>
           </div>
         </div>

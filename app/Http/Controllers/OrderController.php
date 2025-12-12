@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Order;
 
 class OrderController extends Controller
@@ -37,22 +39,22 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         
-        // Get balances in format expected by component
+        // Get balances in format expected by component with rounding to 3 decimal places
         $balances = [];
         $balances['USD'] = [
             'symbol' => 'USD',
-            'amount' => $user->balance,
+            'amount' => round($user->balance, 3),
             'locked_amount' => 0,
-            'available' => $user->balance
+            'available' => round($user->balance, 3)
         ];
         
         $assets = $user->assets;
         foreach ($assets as $asset) {
             $balances[$asset->symbol] = [
                 'symbol' => $asset->symbol,
-                'amount' => $asset->amount,
-                'locked_amount' => $asset->locked_amount ?? 0,
-                'available' => $asset->amount - ($asset->locked_amount ?? 0)
+                'amount' => round($asset->amount, 3),
+                'locked_amount' => round($asset->locked_amount ?? 0, 3),
+                'available' => round($asset->amount - ($asset->locked_amount ?? 0), 3)
             ];
         }
         
@@ -89,44 +91,72 @@ class OrderController extends Controller
         $data = $request->all();
         $data['type'] = $data['type'] ?? 'limit';
 
-        // Check if user has sufficient balance
-        $total = $data['price'] * $data['amount'];
+        // Round values to 3 decimal places
+        $price = round($data['price'], 3);
+        $amount = round($data['amount'], 3);
+        $total = round($price * $amount, 3);
         
         if ($data['side'] === 'buy') {
+            // Check if user has sufficient balance
             if ($user->balance < $total) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Insufficient USD balance'
+                    'message' => "Insufficient USD balance. To BUY, you need \${$total} USD but you only have \${$user->balance} USD."
                 ], 400);
             }
+            
+            // Deduct balance from user
+            $user->balance = round($user->balance - $total, 3);
+            $user->save();
+            
+            // Create the order with locked USD
+            $order = $user->orders()->create([
+                'symbol' => $data['symbol'],
+                'side' => $data['side'],
+                'price' => $price,
+                'amount' => $amount,
+                'remaining_amount' => $amount,
+                'status' => Order::STATUS_OPEN,
+                'locked_usd' => $total,
+            ]);
         } else {
             // For sell orders, check if user has the asset
-            // Extract base symbol (e.g., BTC from BTCUSD)
-            $baseSymbol = preg_replace('/USD$/', '', $data['symbol']);
+            // Extract base symbol (e.g., BTC from BTC-USD)
+            $symbolParts = explode('-', $data['symbol']);
+            $baseSymbol = $symbolParts[0];
             $asset = $user->assets()->where('symbol', $baseSymbol)->first();
             
-            if (!$asset || ($asset->amount - ($asset->locked_amount ?? 0)) < $data['amount']) {
+            if (!$asset || ($asset->amount - ($asset->locked_amount ?? 0)) < $amount) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Insufficient {$baseSymbol} balance"
+                    'message' => "Insufficient {$baseSymbol} balance. To SELL {$baseSymbol}, you need to own {$baseSymbol} assets."
                 ], 400);
             }
+            
+            // Lock the asset
+            $asset->locked_amount = round(($asset->locked_amount ?? 0) + $amount, 3);
+            $asset->save();
+            
+            // Create the order with locked USD value
+            $order = $user->orders()->create([
+                'symbol' => $data['symbol'],
+                'side' => $data['side'],
+                'price' => $price,
+                'amount' => $amount,
+                'remaining_amount' => $amount,
+                'status' => Order::STATUS_OPEN,
+                'locked_usd' => $total,
+            ]);
         }
 
-        // Create the order
-        $order = $user->orders()->create([
-            'symbol' => $data['symbol'],
-            'side' => $data['side'],
-            'price' => $data['price'],
-            'amount' => $data['amount'],
-            'remaining_amount' => $data['amount'],
-            'status' => Order::STATUS_OPEN,
-        ]);
+        // Attempt to match the order immediately
+        $matched = $order->match();
 
         return response()->json([
             'success' => true,
-            'message' => 'Order placed successfully',
-            'order' => $order
+            'message' => $matched ? 'Order matched and filled successfully' : 'Order placed successfully',
+            'order' => $order->fresh(), // Refresh to get updated status
+            'matched' => $matched
         ], 201);
     }
 
@@ -150,17 +180,69 @@ class OrderController extends Controller
             return redirect()->back()->with('error', 'Order not found');
         }
         
-        $order->status = Order::STATUS_CANCELLED;
-        $order->save();
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'order' => $order,
-            ], 200);
+        // Check if order can be cancelled
+        if ($order->status !== Order::STATUS_OPEN) {
+            $statusLabel = $order->status === Order::STATUS_FILLED ? 'filled' : 'already cancelled';
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot cancel order that is {$statusLabel}",
+                ], 400);
+            }
+            return redirect()->back()->with('error', "Cannot cancel order that is {$statusLabel}");
         }
         
-        return redirect()->back()->with('success', 'Order cancelled successfully');
+        DB::beginTransaction();
+        
+        try {
+            $user = $order->user;
+            
+            if ($order->side === 'buy') {
+                // Return locked USD to user's balance
+                $user->balance = round($user->balance + $order->locked_usd, 3);
+                $user->save();
+            } else {
+                // Unlock the asset
+                $symbolParts = explode('-', $order->symbol);
+                $baseSymbol = $symbolParts[0];
+                $asset = $user->assets()->where('symbol', $baseSymbol)->first();
+                
+                if ($asset) {
+                    $asset->locked_amount = round($asset->locked_amount - $order->remaining_amount, 3);
+                    $asset->save();
+                }
+            }
+            
+            // Mark order as cancelled
+            $order->status = Order::STATUS_CANCELLED;
+            $order->locked_usd = 0;
+            $order->save();
+            
+            DB::commit();
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'order' => $order,
+                    'message' => 'Order cancelled and funds released successfully',
+                ], 200);
+            }
+            
+            return redirect()->back()->with('success', 'Order cancelled and funds released successfully');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Order cancellation failed: ' . $e->getMessage());
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to cancel order',
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to cancel order');
+        }
     }
 
     /**
@@ -204,16 +286,16 @@ class OrderController extends Controller
         
         $orders = $query->latest()->get();
         
-        // Add status labels for frontend
+        // Add status labels for frontend with rounding to 3 decimal places
         $orders = $orders->map(function ($order) {
             return [
                 'id' => $order->id,
                 'symbol' => $order->symbol,
                 'side' => $order->side,
-                'price' => $order->price,
-                'amount' => $order->amount,
-                'remaining_amount' => $order->remaining_amount,
-                'filled_amount' => $order->amount - $order->remaining_amount,
+                'price' => round($order->price, 3),
+                'amount' => round($order->amount, 3),
+                'remaining_amount' => round($order->remaining_amount, 3),
+                'filled_amount' => round($order->amount - $order->remaining_amount, 3),
                 'status' => $order->status,
                 'status_label' => $this->getStatusLabel($order->status),
                 'created_at' => $order->created_at,
@@ -260,14 +342,14 @@ class OrderController extends Controller
             return $order->side === 'sell';
         })->values();
         
-        // Calculate cumulative totals
+        // Calculate cumulative totals with rounding to 3 decimal places
         $cumulativeBid = 0;
         $bidsWithTotal = $bids->map(function ($order) use (&$cumulativeBid) {
             $cumulativeBid += $order->remaining_amount;
             return [
-                'price' => $order->price,
-                'amount' => $order->remaining_amount,
-                'total' => $cumulativeBid,
+                'price' => round($order->price, 3),
+                'amount' => round($order->remaining_amount, 3),
+                'total' => round($cumulativeBid, 3),
             ];
         });
         
@@ -275,9 +357,9 @@ class OrderController extends Controller
         $asksWithTotal = $asks->sortBy('price')->map(function ($order) use (&$cumulativeAsk) {
             $cumulativeAsk += $order->remaining_amount;
             return [
-                'price' => $order->price,
-                'amount' => $order->remaining_amount,
-                'total' => $cumulativeAsk,
+                'price' => round($order->price, 3),
+                'amount' => round($order->remaining_amount, 3),
+                'total' => round($cumulativeAsk, 3),
             ];
         })->values();
         
