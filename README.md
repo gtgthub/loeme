@@ -1,7 +1,7 @@
-Limit-Order-Exchange-Mini-Engine (Used Laravel12, Vue2.0, Postgres16, Tailwind)
+Limit-Order-Exchange-Mini-Engine (Used Laravel12, Vue2.0, Postgres14.x, Tailwind)
 
 Steps to host and run this app:
-1. Install Postgres 16 or above. Keep db user/pwd as 'postgres'. Create a db 'loeme'.
+1. Install Postgres 14.x. Keep db user/pwd as 'postgres'. Create a db 'loeme'.
 2. Download Laravel 12 and add this .env.bak as .env file
 3. run 'composer install' inside the project.
 4. run 'composer require pusher/pusher-php-server'
