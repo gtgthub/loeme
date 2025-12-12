@@ -8,3 +8,8 @@ Steps to host and run this app:
 5. Register few users. No need to verify.
 6. It'lll auto asisgn 10K USD and 100 of each asset(BTC, Eth, USDT)
 7. You can do trading and test the app.
+
+PS: How to run it:
+1. Open terminal, go the root folder. Run 'npm run dev'
+2. Open another terminal, go the root folder. Run 'php artisan serve --port=1111'
+3. You can now open the app on your browser as : http://localhost:1111/
